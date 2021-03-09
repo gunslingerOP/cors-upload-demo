@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-const axios = require('axios');
+import axios from 'axios'
 
    export default function Home(props) {
+   
   const getSignedURL = () => {
     return new Promise((resolve, reject) => {
       axios
-        .post("https://videoback.herokuapp.com/v1/video")
+        .post("http://localhost:4000/v1/video")
         .then(data => {
           resolve(data);
         })
@@ -27,13 +28,34 @@ const axios = require('axios');
   
     let fd = new FormData();
     fd.append("file", selectedFile);
-    getSignedURL().then(data => {
-      axios
-        .put(data.data.data.urls[0], fd, config)
-        .then(res => console.log("Upload Completed", res))
-        .catch(err => console.log( err));
-    });
   };
+  const upload=()=>{
+
+    getSignedURL().then(data => {
+     doUpload(data.data.data.uploadUrl, data.data.data.authorizationToken, selectedFile)
+    })
+  }
+  const doUpload = async(url, token, data)=>{
+    console.log(url);
+    const response = await axios({
+      method:'post',
+      url, 
+      data,
+      headers: {
+        Authorization: token,
+        'Content-Type': 'b2/x-auto',
+        'X-Bz-File-Name': `some-folder/${selectedFile.name}`,
+        'X-Bz-Content-Sha1': 'do_not_verify' // Yes, you probably should.
+      },
+
+      onUploadProgress: ({ loaded, total }) => {
+        const totalProgress = parseInt((loaded / total) * 100)
+        console.log(`${totalProgress}%`)
+      }
+    } )
+    console.log( response )
+  
+  }
   
   const [selectedFile, setSelectedFile] = useState();
   const [isSelected, setIsSelected] = useState(false);
@@ -59,7 +81,7 @@ const axios = require('axios');
           <p>Select a file to show details</p>
         )}
         <div>
-          <button onClick={uploadMediaToS3}>Submit</button>
+          <button onClick={upload}>Submit</button>
         </div>
       </div>
   );
