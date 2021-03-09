@@ -1,65 +1,71 @@
-import Head from 'next/head'
-import styles from '../styles/Home.module.css'
+import React, { useState } from 'react';
+const axios = require('axios');
 
-export default function Home() {
+   export default function Home(props) {
+  const getSignedURL = () => {
+    return new Promise((resolve, reject) => {
+      axios
+        .post("https://videoback.herokuapp.com/v1/video")
+        .then(data => {
+          resolve(data);
+        })
+        .catch(err => {
+          reject(err);
+        });
+    });
+  };
+  
+  const uploadMediaToS3 = () => {
+    const config = {
+      onUploadProgress: function(progressEvent) {
+        var percentCompleted = Math.round(
+          (progressEvent.loaded * 100) / progressEvent.total
+        );
+        console.log(percentCompleted);
+      }
+    };
+  
+    let fd = new FormData();
+    fd.append("file", selectedFile);
+    getSignedURL().then(data => {
+      axios
+        .put(data.data.data.urls[0], fd, config)
+        .then(res => console.log("Upload Completed", res))
+        .catch(err => console.log( err));
+    });
+  };
+  
+  const [selectedFile, setSelectedFile] = useState();
+  const [isSelected, setIsSelected] = useState(false);
+  
+  const changeHandler = (event) => {
+    setSelectedFile(event.target.files[0]);
+    setIsSelected(true);
+  };
   return (
-    <div className={styles.container}>
-      <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
-
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
-
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className={styles.card}
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h3>Deploy &rarr;</h3>
+    <div>
+        <input type="file" name="file" onChange={changeHandler} />
+        {isSelected ? (
+          <div>
+            <p>Filename: {selectedFile.name}</p>
+            <p>Filetype: {selectedFile.type}</p>
+            <p>Size in bytes: {selectedFile.size}</p>
             <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
+              lastModifiedDate:{' '}
+              {selectedFile.lastModifiedDate.toLocaleDateString()}
             </p>
-          </a>
+          </div>
+        ) : (
+          <p>Select a file to show details</p>
+        )}
+        <div>
+          <button onClick={uploadMediaToS3}>Submit</button>
         </div>
-      </main>
+      </div>
+  );
+  
+  
+  
+  }
+  
 
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <img src="/vercel.svg" alt="Vercel Logo" className={styles.logo} />
-        </a>
-      </footer>
-    </div>
-  )
-}
