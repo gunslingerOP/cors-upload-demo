@@ -56,17 +56,14 @@ export default function Home(props) {
     });
   };
   const doUpload = async (url, token, data) => {
-    console.log(data);
-    let formData = new FormData();
-    formData.append(selectedFile.name, data);
-    console.log(formData);
+ console.log(data);
     axios({
       url,
       method: "POST",
       data,
       headers: {
         Authorization: token,
-        "X-Bz-File-Name": "file",
+        "X-Bz-File-Name": selectedFile.name,
         "Content-Type": "b2/x-auto",
         "X-Bz-Content-Sha1": "do_not_verify",
       },
@@ -82,7 +79,8 @@ export default function Home(props) {
   };
 
   const changeHandler = (event) => {
-    setSelectedFile(event.target.files[0]);
+    console.log(event.target);
+    setSelectedFile(event.target.jbhj);
     setIsSelected(true);
   };
   return (
@@ -97,7 +95,7 @@ export default function Home(props) {
             lastModifiedDate:{" "}
             {selectedFile.lastModifiedDate.toLocaleDateString()}
           </p>
-          <a href={downloadUrl}>Download your uploaded file!</a>
+          <a href={downloadUrl}>{downloadUrl}</a>
         </div>
       ) : (
         <p>Select a file to show details</p>
