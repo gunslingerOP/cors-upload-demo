@@ -6,7 +6,7 @@ export default function Home(props) {
   const getUrl = () => {
     return new Promise((resolve, reject) => {
       axios
-        .post("http://localhost:4000/v1/video")
+        .post('https://videoback.herokuapp.com/v1/video')
         .then((data) => {
           resolve(data);
         })
@@ -20,7 +20,7 @@ export default function Home(props) {
   const [downloadUrl, setDownloadUrl] = useState();
   const getDownloadUrl = (bucketId, fileId) => {
     const urlApi = (data, callback) => {
-      fetch("http://localhost:4000/v1/video/url", {
+      fetch("https://videoback.herokuapp.com/v1/video/url", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
