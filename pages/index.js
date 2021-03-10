@@ -80,7 +80,7 @@ export default function Home(props) {
 
   const changeHandler = (event) => {
     console.log(event.target);
-    setSelectedFile(event.target.jbhj);
+    setSelectedFile(event.target.files[0]);
     setIsSelected(true);
   };
   return (
