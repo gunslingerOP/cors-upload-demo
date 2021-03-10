@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { message } from "antd";
-
+var hash = require('object-hash');
 export default function Home(props) {
   const getUrl = () => {
     return new Promise((resolve, reject) => {
@@ -11,6 +11,7 @@ export default function Home(props) {
           resolve(data);
         })
         .catch((err) => {
+          console.log(JSON.stringify(err));
           reject(err);
         });
     });
@@ -56,16 +57,20 @@ export default function Home(props) {
     });
   };
   const doUpload = async (url, token, data) => {
+ console.log(selectedFile.size);
  console.log(data);
-    axios({
-      url,
-      method: "POST",
+ axios(      
+      {
+      method: "post",
       data,
+      url,
       headers: {
         Authorization: token,
         "X-Bz-File-Name": selectedFile.name,
         "Content-Type": "b2/x-auto",
-        "X-Bz-Content-Sha1": "do_not_verify",
+        "X-Bz-Content-Sha1": hash(selectedFile,{algorithm:"sha1"}),
+
+
       },
 
       onUploadProgress: ({ loaded, total }) => {
@@ -74,7 +79,11 @@ export default function Home(props) {
       },
     }).then((response) => {
       console.log(response);
+      console.log('reached here');
       getDownloadUrl(response.data.bucketId, response.data.fileId);
+    }).catch((err)=>{
+ 
+      console.log(JSON.stringify(err));
     });
   };
 
