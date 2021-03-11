@@ -18,7 +18,9 @@ export default function Home() {
     });
   };
   const publicVapidKey =
-    "BEEOxYg_W-_JH53EKi46_jI6iUnLMq8fKQgeClerSt6HAWGxv_FtinrLXRQgwGFcWvSA31S71NCUoEjo9vZufMQ";
+    "BEEOxYg_W-_JH53EKi46_jI6iUnLMq8fKQgeClerSt6HAWGxv_FtinrLXRQgwGFcWvSA31S71NCUoEjo9vZufMQ"; //for local
+
+    // const publicVapidKey = "BLnxu898MlJVXsa98LYClFhxkyPUnyRu0W19Z9HvXDtDUSecWgLEGfGTfirNYXDJRTma7k07c-fnQZZEO2Ydpgo" //herkou
   if (typeof window !== "undefined") {
     console.log("works!");
     // Check for service worker
@@ -40,25 +42,25 @@ export default function Home() {
 
       // Register Push
       console.log("Registering Push...");
-     console.log(urlBase64ToUint8Array(publicVapidKey))
+     let publicKey = urlBase64ToUint8Array(publicVapidKey)
       const subscription = await register.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
+        applicationServerKey: publicKey,
       });
       console.log("Push Registered...");
-
+let url = "http://videoback.herokuapp.com/v1/sub"
       // Send Push Notification
       console.log("Sending Push...");
-      await fetch("http://localhost:5000/v1/sub", {
+      await fetch( url,{
         method: "POST",
-        body: JSON.stringify(subscription),
+       body:JSON.stringify(subscription),
         headers: {
           "content-type": "application/json",
         },
       }).then((res)=>{
-        console.log(JSON.stringify(res));
+        console.log(res.json());
       })
-      console.log("Push Sent...");
+      console.log(`Push Sent to ${url}`);
     }
 
     function urlBase64ToUint8Array(base64String) {
