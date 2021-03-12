@@ -41,7 +41,7 @@ export default function Home() {
   // const publicVapidKey = "BLnxu898MlJVXsa98LYClFhxkyPUnyRu0W19Z9HvXDtDUSecWgLEGfGTfirNYXDJRTma7k07c-fnQZZEO2Ydpgo" //herkou
   const [selectedFile, setSelectedFile] = useState();
   const [isSelected, setIsSelected] = useState(false);
-  const [downloadUrls, setDownloadUrls] = useState([]);
+  const [downloadUrls, setDownloadUrls] = useState(["https://f000.backblazeb2.com/b2api/v2/b2_download_…19461cb25ab_d20210312_m152632_c000_v0001078_t0055", "https://f000.backblazeb2.com/b2api/v2/b2_download_…289b7ec7d4b_d20210312_m154530_c000_v0001158_t0018", "https://f000.backblazeb2.com/b2api/v2/b2_download_…2dfcb2a1c67_d20210312_m154526_c000_v0001067_t0036", "https://f000.backblazeb2.com/b2api/v2/b2_download_…fe79cd6f651_d20210312_m154526_c000_v0001077_t0003", "https://f000.backblazeb2.com/b2api/v2/b2_download_…ddfee10ffdd_d20210312_m154526_c000_v0001014_t0040", "https://f000.backblazeb2.com/b2api/v2/b2_download_…0edf56a8901_d20210312_m154526_c000_v0001073_t0050", "https://f000.backblazeb2.com/b2api/v2/b2_download_…66785b2d583_d20210312_m154526_c000_v0001080_t0054", "https://f000.backblazeb2.com/b2api/v2/b2_download_…bf1e92d88b3_d20210312_m154526_c000_v0001045_t0041", "https://f000.backblazeb2.com/b2api/v2/b2_download_…7fadc0e3889_d20210312_m154526_c000_v0001069_t0015"]);
   const [text, setText] = useState();
   const [doRequest, setdoRequest] = useState(false);
   const [fileId, setFileId] = useState();
@@ -50,13 +50,11 @@ export default function Home() {
   const [progress, setProgress] = useState(0);
   const [busy, setBusy] = useState(false);
 
-
-
-
   const upload = async () => {
     let url;
     let token;
-    if(busy) return alert("YOU ARE ALREADY UPLOADING SOMETHING YOU GREEDY FUCK")
+    if (busy)
+      return alert("YOU ARE ALREADY UPLOADING SOMETHING YOU GREEDY FUCK");
     console.log(`Size of the file: ${selectedFile.size}`);
 
     await getUrl().then((data) => {
@@ -65,8 +63,8 @@ export default function Home() {
     });
 
     let fileName = selectedFile.name.replace(/\s+/g, "");
-    let data = selectedFile
-    setBusy(true)
+    let data = selectedFile;
+    setBusy(true);
     axios({
       method: "post",
       data,
@@ -81,12 +79,12 @@ export default function Home() {
       onUploadProgress: ({ loaded, total }) => {
         const totalProgress = parseInt((loaded / total) * 100);
         console.log(`${totalProgress}%`);
-        setProgress(totalProgress)
+        setProgress(totalProgress);
       },
     })
       .then((response) => {
         console.log("reaches here");
-        setBucketId( response.data.bucketId);
+        setBucketId(response.data.bucketId);
         setFileId(response.data.fileId);
         setFileName(response.data.fileName);
         setdoRequest(true);
@@ -100,7 +98,6 @@ export default function Home() {
       });
   };
 
- 
   const changeHandler = (event) => {
     setSelectedFile(event.target.files[0]);
     setIsSelected(true);
@@ -131,8 +128,8 @@ export default function Home() {
               applicationServerKey: publicKey,
             });
 
-            let bodyObj = { subscription, bucketId,fileId,fileName };
-            let url = "https://videoback.herokuapp.com/v1/video/process";
+            let bodyObj = { subscription, bucketId, fileId, fileName };
+            let url = "http://localhost:5000/v1/video/process";
             // Send Push Notification
             console.log("Sending Push...");
             await fetch(url, {
@@ -147,15 +144,12 @@ export default function Home() {
             console.log(`Push Sent to ${url}`);
             const channel = new BroadcastChannel("sw-messages");
             channel.addEventListener("message", async (event) => {
-        
-               setText("Processing complete and files are ready for download!");
-              setBusy(false)
-              console.log("event",event);
-              console.log("event json", event.data.json());
-              console.log("event data" , event.data);
-              setDownloadUrls(event.data)
+              setText("Processing complete and files are ready for download!");
+              setBusy(false);
+              console.log("event data", event.data, typeof event.data);
+              setDownloadUrls(event.data);
               console.log(downloadUrls);
-              });
+            });
           }
         }
         setdoRequest(false);
@@ -176,15 +170,13 @@ export default function Home() {
             {selectedFile.lastModifiedDate.toLocaleDateString()}
           </p>
           <p>{text}</p>
-          <p>{progress+`%`}</p>
-          
-          <p >{
-            downloadUrls.map((el)=>( 
-              <p>{el}</p>
-      ))                
-          }</p>
+          <p>{progress + `%`}</p>
 
-
+          <p>
+            {downloadUrls
+              ? downloadUrls.map((el, index) => <p>{` ${index})  ${el}`}</p>)
+              : null}
+          </p>
         </div>
       ) : (
         <>
