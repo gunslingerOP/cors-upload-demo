@@ -132,7 +132,7 @@ export default function Home() {
             });
 
             let bodyObj = { subscription, bucketId,fileId,fileName };
-            let url = "http://localhost:5000/v1/video/process";
+            let url = "http://videoback.herokuapp.com/v1/video/process";
             // Send Push Notification
             console.log("Sending Push...");
             await fetch(url, {
