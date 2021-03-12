@@ -12,7 +12,11 @@ export default function Home() {
           resolve(data);
         })
         .catch((err) => {
-          console.log(JSON.stringify(err));
+          if (error.response) {
+            console.log(error.response.data);
+          } else {
+            console.log(error);
+          }
           reject(err);
         });
     });
@@ -20,126 +24,72 @@ export default function Home() {
   const publicVapidKey =
     "BEEOxYg_W-_JH53EKi46_jI6iUnLMq8fKQgeClerSt6HAWGxv_FtinrLXRQgwGFcWvSA31S71NCUoEjo9vZufMQ"; //for local
 
-    // const publicVapidKey = "BLnxu898MlJVXsa98LYClFhxkyPUnyRu0W19Z9HvXDtDUSecWgLEGfGTfirNYXDJRTma7k07c-fnQZZEO2Ydpgo" //herkou
-  if (typeof window !== "undefined") {
-    console.log("works!");
-    // Check for service worker
-    if ("serviceWorker" in navigator) {
-      send().catch(err => console.error(err));
+  function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, "+")
+      .replace(/_/g, "/");
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
     }
-
-    // Register SW, Register Push, Send Push
-    async function send() {
-      // Register Service Worker
-      console.log("Registering service worker...");
-      const register = await navigator.serviceWorker.register(
-        "/sw.js",
-        {
-          scope: "/",
-        }
-      );
-      console.log("Service Worker Registered...");
-
-      // Register Push
-      console.log("Registering Push...");
-     let publicKey = urlBase64ToUint8Array(publicVapidKey)
-      const subscription = await register.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: publicKey,
-      });
-      console.log("Push Registered...");
-let url = "http://videoback.herokuapp.com/v1/sub"
-      // Send Push Notification
-      console.log("Sending Push...");
-      await fetch( url,{
-        method: "POST",
-       body:JSON.stringify(subscription),
-        headers: {
-          "content-type": "application/json",
-        },
-      }).then((res)=>{
-        console.log(res.json());
-      })
-      console.log(`Push Sent to ${url}`);
-    }
-
-    function urlBase64ToUint8Array(base64String) {
-      const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-      const base64 = (base64String + padding)
-        .replace(/\-/g, "+")
-        .replace(/_/g, "/");
-
-      const rawData = window.atob(base64);
-      const outputArray = new Uint8Array(rawData.length);
-
-      for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-      }
-      return outputArray;
-    }
+    return outputArray;
   }
+  // const publicVapidKey = "BLnxu898MlJVXsa98LYClFhxkyPUnyRu0W19Z9HvXDtDUSecWgLEGfGTfirNYXDJRTma7k07c-fnQZZEO2Ydpgo" //herkou
   const [selectedFile, setSelectedFile] = useState();
   const [isSelected, setIsSelected] = useState(false);
-  const [downloadUrl, setDownloadUrl] = useState();
-  const getDownloadUrl = (bucketId, fileId) => {
-    const urlApi = (data, callback) => {
-      fetch("https://videoback.herokuapp.com/v1/video/url", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      })
-        .then((resp) => resp.json())
-        .then((result) => callback(null, result))
-        .catch((err) => callback(err, null));
-    };
+  const [downloadUrls, setDownloadUrls] = useState([]);
+  const [text, setText] = useState();
+  const [doRequest, setdoRequest] = useState(false);
+  const [fileId, setFileId] = useState();
+  const [fileName, setFileName] = useState();
+  const [bucketId, setBucketId] = useState();
+  const [progress, setProgress] = useState(0);
+  const [busy, setBusy] = useState(false);
 
-    urlApi({ bucketId, fileId }, (err, result) => {
-      if (err) throw err;
-      if (!result.status) {
-        Object.keys(result.errMsg).forEach((key) => {
-          message.error(result.errMsg[key]);
-        });
-      } else {
-        console.log(result);
-        setDownloadUrl(result.data);
-      }
+
+
+
+  const upload = async () => {
+    let url;
+    let token;
+    if(busy) return alert("YOU ARE ALREADY UPLOADING SOMETHING YOU GREEDY FUCK")
+    console.log(`Size of the file: ${selectedFile.size}`);
+
+    await getUrl().then((data) => {
+      (url = data.data.data.uploadUrl),
+        (token = data.data.data.authorizationToken);
     });
-  };
 
-  const upload = () => {
-    getUrl().then((data) => {
-      doUpload(
-        data.data.data.uploadUrl,
-        data.data.data.authorizationToken,
-        selectedFile
-      );
-    });
-  };
-  const doUpload = async (url, token, data) => {
-    console.log(selectedFile.size);
-    console.log(data);
-
-    let fileName = data.name.replace(/\s+/g, "");
+    let fileName = selectedFile.name.replace(/\s+/g, "");
+    let data = selectedFile
+    setBusy(true)
     axios({
       method: "post",
       data,
       url,
       headers: {
         Authorization: token,
+        "Content-Type": selectedFile.type,
         "X-Bz-File-Name": fileName,
-        "Content-Type": "b2/x-auto",
         "X-Bz-Content-Sha1": "do_not_verify",
       },
 
       onUploadProgress: ({ loaded, total }) => {
         const totalProgress = parseInt((loaded / total) * 100);
         console.log(`${totalProgress}%`);
+        setProgress(totalProgress)
       },
     })
       .then((response) => {
-        getDownloadUrl(response.data.bucketId, response.data.fileId);
+        console.log("reaches here");
+        setBucketId( response.data.bucketId);
+        setFileId(response.data.fileId);
+        setFileName(response.data.fileName);
+        setdoRequest(true);
       })
       .catch((error) => {
         if (error.response) {
@@ -150,11 +100,69 @@ let url = "http://videoback.herokuapp.com/v1/sub"
       });
   };
 
+ 
   const changeHandler = (event) => {
-    console.log(event.target);
     setSelectedFile(event.target.files[0]);
     setIsSelected(true);
   };
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // Check for service worker
+      if ("serviceWorker" in navigator) {
+        if (doRequest) {
+          console.log(fileId, fileName);
+          //registers service worker
+          console.log("Registering service worker...");
+          navigator.serviceWorker
+            .register("/sw.js", {
+              scope: "/",
+            })
+            .then((data) => {
+              console.log("Service Worker Registered...");
+              send(data).catch((err) => console.error(err));
+            });
+
+          async function send(register) {
+            // Register Push
+            let publicKey = urlBase64ToUint8Array(publicVapidKey);
+            const subscription = await register.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: publicKey,
+            });
+
+            let bodyObj = { subscription, bucketId,fileId,fileName };
+            let url = "http://localhost:5000/v1/video/process";
+            // Send Push Notification
+            console.log("Sending Push...");
+            await fetch(url, {
+              method: "POST",
+              body: JSON.stringify(bodyObj),
+              headers: {
+                "content-type": "application/json",
+              },
+            }).then((res) => {
+              console.log(res.json());
+            });
+            console.log(`Push Sent to ${url}`);
+            const channel = new BroadcastChannel("sw-messages");
+            channel.addEventListener("message", async (event) => {
+        
+               setText("Processing complete and files are ready for download!");
+              setBusy(false)
+              console.log("event",event);
+              console.log("event json", event.data.json());
+              console.log("event data" , event.data);
+              setDownloadUrls(event.data)
+              console.log(downloadUrls);
+              });
+          }
+        }
+        setdoRequest(false);
+      }
+    }
+  }, [doRequest]);
+
   return (
     <div>
       <input type="file" name="file" onChange={changeHandler} />
@@ -167,10 +175,21 @@ let url = "http://videoback.herokuapp.com/v1/sub"
             lastModifiedDate:{" "}
             {selectedFile.lastModifiedDate.toLocaleDateString()}
           </p>
-          <a href={downloadUrl}>{downloadUrl}</a>
+          <p>{text}</p>
+          <p>{progress+`%`}</p>
+          
+          <p >{
+            downloadUrls.map((el)=>( 
+              <p>{el}</p>
+      ))                
+          }</p>
+
+
         </div>
       ) : (
-        <p>Select a file to show details</p>
+        <>
+          <p>Select a file to show details</p>
+        </>
       )}
       <div>
         <button onClick={upload}>Submit</button>
@@ -178,8 +197,3 @@ let url = "http://videoback.herokuapp.com/v1/sub"
     </div>
   );
 }
-
-// export default function Home() {
-//   console.log("server work");
-//   return <h1>with-service-worker</h1>;
-// }
