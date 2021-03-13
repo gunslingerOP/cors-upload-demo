@@ -1,5 +1,11 @@
 import React, { useState } from "react";
 import axios from "axios";
+
+let ReactHlsPlayer;
+
+if (typeof window != "undefined") {
+  ReactHlsPlayer = require("react-hls-player");
+}
 // import service from "../public/sw"
 import { useEffect } from "react";
 import { message } from "antd";
@@ -102,23 +108,24 @@ export default function Home() {
     setSelectedFile(event.target.files[0]);
     setIsSelected(true);
   };
-
+  if (typeof window !== "undefined") {
+    window.addEventListener("load", () => {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js").then((data) => {
+          console.log("Service Worker Registered...");
+          // send(data).catch((err) => console.error(err));
+        });
+      }
+    });
+  }
   useEffect(() => {
     if (typeof window !== "undefined") {
       // Check for service worker
       if ("serviceWorker" in navigator) {
         if (doRequest) {
-          console.log(fileId, fileName);
-          //registers service worker
           console.log("Registering service worker...");
-          navigator.serviceWorker
-            .register("/sw.js", {
-              scope: "/",
-            })
-            .then((data) => {
-              console.log("Service Worker Registered...");
-              send(data).catch((err) => console.error(err));
-            });
+
+          send(data).catch((err) => console.error(err));
 
           async function send(register) {
             // Register Push
@@ -149,13 +156,20 @@ export default function Home() {
               console.log("event data", event.data, typeof event.data);
               setDownloadUrls(event.data);
               console.log(downloadUrls);
+              setdoRequest(false);
             });
           }
         }
-        setdoRequest(false);
       }
     }
   }, [doRequest]);
+
+  var params = {
+    licenseKey: "001a3d80-f991-f6a6-f1b6-27c719e8f80d",
+    videoSources: {
+      src: "https://f000.backblazeb2.com/file/videoback/tests/playlist.m3u8",
+    },
+  };
 
   return (
     <div>
@@ -180,6 +194,18 @@ export default function Home() {
         </div>
       ) : (
         <>
+          <div>
+            {ReactHlsPlayer && (
+              <ReactHlsPlayer
+                url="https://f000.backblazeb2.com/file/videoback/tests/playlist.m3u8"
+                autoplay={false}
+                controls={true}
+                width={500}
+                height={375}
+              />
+            )}
+          </div>
+
           <p>Select a file to show details</p>
         </>
       )}
