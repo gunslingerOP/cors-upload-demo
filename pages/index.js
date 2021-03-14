@@ -1,6 +1,5 @@
 import React, { Component, useState } from "react";
 import axios from "axios";
-import Hls from "hls.js";
 import { useEffect } from "react";
 import ReactPlayer from 'react-player'
 
