@@ -1,12 +1,11 @@
-import React, { Component, useState } from "react";
+import React, { useState } from "react";
 import axios from "axios";
-import Hls from "hls.js";
+
+// import service from "../public/sw"
 import { useEffect } from "react";
-import ReactPlayer from 'react-player'
-
+import { message } from "antd";
+import ReactHlsPlayer from "react-hls-player";
 export default function Home() {
- 
-
   const getUrl = () => {
     return new Promise((resolve, reject) => {
       axios
@@ -44,7 +43,7 @@ export default function Home() {
   // const publicVapidKey = "BLnxu898MlJVXsa98LYClFhxkyPUnyRu0W19Z9HvXDtDUSecWgLEGfGTfirNYXDJRTma7k07c-fnQZZEO2Ydpgo" //herkou
   const [selectedFile, setSelectedFile] = useState();
   const [isSelected, setIsSelected] = useState(false);
-  const [downloadUrl, setDownloadUrl] = useState();
+  const [downloadUrls, setDownloadUrls] = useState();
   const [text, setText] = useState();
   const [doRequest, setdoRequest] = useState(false);
   const [fileId, setFileId] = useState();
@@ -52,11 +51,9 @@ export default function Home() {
   const [bucketId, setBucketId] = useState();
   const [progress, setProgress] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [registration, setRegistration] = useState();
 
   const upload = async () => {
     let url;
-    setDownloadUrl("")
     let token;
     if (busy)
       return alert("YOU ARE ALREADY UPLOADING SOMETHING YOU GREEDY FUCK");
@@ -107,87 +104,68 @@ export default function Home() {
     setSelectedFile(event.target.files[0]);
     setIsSelected(true);
   };
-  
+  if (typeof window !== "undefined") {
+    window.addEventListener("load", () => {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js").then((data) => {
+          console.log("Service Worker Registered...");
+          // send(data).catch((err) => console.error(err));
+        });
+      }
+    });
+  }
   useEffect(() => {
     if (typeof window !== "undefined") {
       // Check for service worker
       if ("serviceWorker" in navigator) {
-        if(!registration){
-
+        if (doRequest) {
           console.log("Registering service worker...");
-          
-          navigator.serviceWorker.register("/sw.js").then((data) => {
-            console.log("Service Worker Registered...");
-            navigator.serviceWorker.ready
-            .then(function(register) {
-              setTimeout(()=>{
-                  
-                  console.log('A service worker is :', register.active.state);
-                  if(register.active.state=="activated"){
-                    console.log('works finally');
-                    setRegistration(register)
-                  }
-                }, 1000)
-                // At this point, you can call methods that require an active
-                // service worker, like registration.pushManager.subscribe()
-              });
-              
-            })
-            
+
+          send(data).catch((err) => console.error(err));
+
+          async function send(register) {
+            // Register Push
+            let publicKey = urlBase64ToUint8Array(publicVapidKey);
+            const subscription = await register.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: publicKey,
+            });
+
+            let bodyObj = { subscription, bucketId, fileId, fileName };
+            let url = "https://videoback.herokuapp.com/v1/video/process";
+            // Send Push Notification
+            console.log("Sending Push...");
+            await fetch(url, {
+              method: "POST",
+              body: JSON.stringify(bodyObj),
+              headers: {
+                "content-type": "application/json",
+              },
+            }).then((res) => {
+              console.log(res.json());
+            });
+            console.log(`Push Sent to ${url}`);
+            const channel = new BroadcastChannel("sw-messages");
+            channel.addEventListener("message", async (event) => {
+              setText("Processing complete and files are ready for download!");
+              setBusy(false);
+              console.log("event data", event.data, typeof event.data);
+              setDownloadUrls(event.data);
+              console.log(downloadUrls);
+              setdoRequest(false);
+            });
           }
-          
-        }
-        if (doRequest&&registration) {
-          send(registration).catch((err) => console.error(err));
-          const channel = new BroadcastChannel("sw-messages");
-          channel.addEventListener("message", async (event) => {
-            setText("Processing complete and files are ready for download!");
-            setBusy(false);
-            console.log("event data", event.data, typeof event.data);
-            setDownloadUrl(event.data);
-           
-            setdoRequest(false);
-          });
-          
         }
       }
-    }, [doRequest]);
+    }
+  }, [doRequest]);
 
-
-    async function send(register) {
-      console.log('Making push...');
-      let publicKey = urlBase64ToUint8Array(publicVapidKey);
-        const subscription = await register.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: publicKey,
-        });
-        
-        let bodyObj = { subscription, bucketId, fileId, fileName };
-        let url = "http://localhost:5000/v1/video/process";
-        // Send Push Notification
-        console.log("Sending Push...");
-        await fetch(url, {
-          method: "POST",
-          body: JSON.stringify(bodyObj),
-          headers: {
-            "content-type": "application/json",
-          },
-        }).then((res) => {
-          console.log(res.json());
-        }).catch((e)=>{
-          console.log(e);
-        })
-        console.log(`Push Sent to ${url}`);
-      }
- 
-
-
-      function diddle(){
-       
-        setDownloadUrl("")
-        setdoRequest(true)
-      }
-
+  var params = {
+    licenseKey: "001a3d80-f991-f6a6-f1b6-27c719e8f80d",
+    videoSources: {
+      src: "https://f000.backblazeb2.com/file/videoback/tests/playlist.m3u8",
+    },
+  };
 
   return (
     <div>
@@ -203,26 +181,25 @@ export default function Home() {
           </p>
           <p>{text}</p>
           <p>{progress + `%`}</p>
-        
-          {downloadUrl?
-          
-          <ReactPlayer   controls={true}     url = "https://f000.backblazeb2.com/file/videoback/file_example_MP4_480_1_5MG/playlist.m3u8"
-          
-          playing
-          controls
-          config={{
-            file: {
-              forceHLS: true,
-            }
-          }}
-          
-          
-          />:null
 
-        }
+          <p>
+            {downloadUrls
+              ? downloadUrls.map((el, index) => <p>{` ${index})  ${el}`}</p>)
+              : null}
+          </p>
         </div>
-        ) : (
-          <>
+      ) : (
+        <>
+          <div>
+            <ReactHlsPlayer
+              url="https://f000.backblazeb2.com/file/videoback/tests/playlist.m3u8"
+              autoplay={false}
+              controls={true}
+              width={500}
+              height={375}
+            />
+          </div>
+
           <p>Select a file to show details</p>
         </>
       )}

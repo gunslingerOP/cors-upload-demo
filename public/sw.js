@@ -5,7 +5,7 @@
   self.addEventListener("push", e => {
     const data = e.data.json();
     console.log("Push Recieved...");
-   
+   console.log(data);
     const channel = new BroadcastChannel('sw-messages');
     channel.postMessage(data);
 
